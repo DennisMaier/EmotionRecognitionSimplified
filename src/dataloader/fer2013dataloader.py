@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import tensorflow as tf
 import PIL
@@ -11,17 +9,16 @@ from keras.models import load_model
 import pandas as pd
 import os
 
-
 class Fer2013BasicGenerator():
     
     def __init__(self, csv_path,
-                 batch_size,
+                 batch_size=32,
                  input_size=(48, 48, 1),
-                 shuffle=True,onehot = True, three_channel_grayscale = False):
         self.num_classes = 7 
-        self.width, self.height = 48, 48
+        self.width= input_size[1] 
+        self.height = input_size[0] 
         self.num_epochs = 50
-        self.batch_size = 64
+        self.batch_size = batch_size
         self.num_features = 64
         self.data = pd.read_csv(csv_path)
         #split data into training, validation and test set
@@ -30,7 +27,7 @@ class Fer2013BasicGenerator():
         self.data_test  = self.data[self.data['Usage']=='PrivateTest'].copy()
         print("train shape: {}, \nvalidation shape: {}, \ntest shape: {}".format(self.data_train.shape, self.data_val.shape, self.data_test.shape))
 
-    def CRNO(self, df, dataName):
+    def preprocess(self, df, dataName):
         df['pixels'] = df['pixels'].apply(lambda pixel_sequence: [int(pixel) for pixel in pixel_sequence.split()])
         data_X = np.array(df['pixels'].tolist(), dtype='float32').reshape(-1,self.width, self.height,1)/255.0   
         data_Y = np_utils.to_categorical(df['emotion'], self.num_classes)  
@@ -39,10 +36,11 @@ class Fer2013BasicGenerator():
 
 
     def get_generators(self):
-        self.train_X, self.train_Y = self.CRNO(self.data_train, "train") #training data
-        self.val_X, self.val_Y     = self.CRNO(self.data_val, "val") #validation data
-        self.test_X, self.test_Y   = self.CRNO(self.data_test, "test") #test data
-          # data generator
+        self.train_X, self.train_Y = self.preprocess(self.data_train, "train") #training data
+        self.val_X, self.val_Y     = self.preprocess(self.data_val, "val") #validation data
+        self.test_X, self.test_Y   = self.preprocess(self.data_test, "test") #test data
+        
+        # data generator
         self.data_generator = ImageDataGenerator(
                         featurewise_center=False,
                         featurewise_std_normalization=False,

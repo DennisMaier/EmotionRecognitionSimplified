@@ -57,6 +57,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     fig, ax = plt.subplots(figsize=(12,6))
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
+    
     # We want to show all ticks...
     ax.set(xticks=np.arange(cm.shape[1]),
            yticks=np.arange(cm.shape[0]),
@@ -101,9 +102,6 @@ batch_size = 32
 
 generator_constructor = Fer2013BasicGenerator(csv_path=csv_path, batch_size=batch_size, input_size=(48, 48, 1))
 training_generator, val_X, val_Y,test_X, test_Y = generator_constructor.get_generators()
-
-#model, modelname = EmotionVGGDefault.build(width=48, height=48, depth = 1, classes = 7,last_activation="softmax")
-#model.compile(optimizer="adam",loss="categorical_crossentropy", metrics="accuracy")
 
 model, modelname = EmotionVGGDefault.build(width=48, height=48, depth = 1, classes = 7,last_activation="sigmoid")
 model.compile(optimizer="adam",loss="binary_crossentropy", metrics="accuracy")
