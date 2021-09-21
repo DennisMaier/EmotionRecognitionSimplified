@@ -1,10 +1,19 @@
-import tensorflow as tf
-from tensorflow.keras.layers import Activation, Input, Dense, Dropout, Flatten,AveragePooling2D, Convolution2D, MaxPooling2D, ZeroPadding2D, Conv2D, BatchNormalization, DepthwiseConv2D
-from tensorflow.keras.models import Sequential,Model
-from keras.layers.merge import concatenate
-from keras.layers import add
+from tensorflow.keras.layers import  Input, Dense, Dropout, Flatten, MaxPooling2D,  Conv2D, BatchNormalization
+from tensorflow.keras.models import Model
 
 def vgg_block(layer_in, n_filters, n_conv, activation="relu",kernel_initializer="he_normal"):
+	"""[summary]
+	Basic VGG Building Block
+	Args:
+		layer_in ([type]): [description]
+		n_filters ([type]): [description]
+		n_conv ([type]): [description]
+		activation (str, optional): [description]. Defaults to "relu".
+		kernel_initializer (str, optional): [description]. Defaults to "he_normal".
+
+	Returns:
+		[type]: [description]
+	"""
 	chanDim = -1
 	# add convolutional layers
 	for _ in range(n_conv):
@@ -15,9 +24,27 @@ def vgg_block(layer_in, n_filters, n_conv, activation="relu",kernel_initializer=
 	return layer_in
 
 class EmotionVGGDefault:
+	"""[summary]
+	Basic neural network vor 48x48x1 input images
+	Returns:
+		[type]: [description]
+	"""
 	@staticmethod
 	def build(width, height, depth, classes,activation="relu",kernel_initializer="he_normal",last_activation="softmax"):
-		# define model input
+		"""[summary]
+		Args:
+			width ([type]): [description]
+			height ([type]): [description]
+			depth ([type]): [description]
+			classes ([type]): [description]
+			activation (str, optional): [description]. Defaults to "relu".
+			kernel_initializer (str, optional): [description]. Defaults to "he_normal".
+			last_activation (str, optional): [description]. Defaults to "softmax".
+		Returns:
+			[type]: [description]
+		"""
+
+		# define model 
 		visible = Input(shape=(height, width, depth))
 		layer = vgg_block(visible, 32, 2,activation=activation,kernel_initializer=kernel_initializer)
 		layer = vgg_block(layer, 64, 2,activation=activation,kernel_initializer=kernel_initializer)

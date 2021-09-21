@@ -9,6 +9,7 @@ from dataloader.fer2013dataloader import Fer2013BasicGenerator
 from mlxtend.plotting import plot_confusion_matrix
 from sklearn.metrics import classification_report, confusion_matrix
 
+#region Callsbacks
 earlystop = EarlyStopping(monitor="val_loss",
                         min_delta=0,
                         patience=10,
@@ -16,22 +17,22 @@ earlystop = EarlyStopping(monitor="val_loss",
                         restore_best_weights=True
                         )
 
-
 reduce_lr = ReduceLROnPlateau(monitor="val_loss",
                                 factor=0.2,
                                 patience=5,
                                 verbose=1,
                                 min_delta=0.0001)
 
-
 def get_tensorboard_cb():
     tbCallBack = tf.keras.callbacks.TensorBoard(log_dir=logdir, profile_batch=5, histogram_freq=1, write_graph=True, write_images=True)
     return tbCallBack
 
+#endregion
+
 def plot_confusion_matrix(y_true, y_pred, classes,
-                          normalize=False,
-                          title=None,
-                          cmap=plt.cm.Blues):
+                            normalize=False,
+                            title=None,
+                            cmap=plt.cm.Blues):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -44,15 +45,11 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
     # Compute confusion matrix
     cm = confusion_matrix(y_true, y_pred)
+
     # Only use the labels that appear in the data
     classes = classes
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        #print("Normalized confusion matrix")
-    #else:
-        #print('Confusion matrix, without normalization')
-
-    #print(cm)
 
     fig, ax = plt.subplots(figsize=(12,6))
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -60,16 +57,16 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     
     # We want to show all ticks...
     ax.set(xticks=np.arange(cm.shape[1]),
-           yticks=np.arange(cm.shape[0]),
-           # ... and label them with the respective list entries
-           xticklabels=classes, yticklabels=classes,
-           title=title,
-           ylabel='True label',
-           xlabel='Predicted label')
+        yticks=np.arange(cm.shape[0]),
+        # ... and label them with the respective list entries
+        xticklabels=classes, yticklabels=classes,
+        title=title,
+        ylabel='True label',
+        xlabel='Predicted label')
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-             rotation_mode="anchor")
+            rotation_mode="anchor")
 
     # Loop over data dimensions and create text annotations.
     fmt = '.2f' if normalize else 'd'
@@ -94,40 +91,45 @@ def get_classweights(classes,normalize = False):
             class_weights[k] = class_weights[k]*factor
     return class_weights
 
-
+#region Setting
 class_labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
 logdir = "./Graph"
 csv_path = "data/fer2013.csv"
 batch_size = 32
+#endregion
 
+# Dataloader: Loads and preprocesses image data to feed the neural network
 generator_constructor = Fer2013BasicGenerator(csv_path=csv_path, batch_size=batch_size, input_size=(48, 48, 1))
-training_generator, val_X, val_Y,test_X, test_Y = generator_constructor.get_generators()
 
+
+#We will use generators to feed the neural network
+training_generator, validation_generator, test_generator = generator_constructor.get_generators()
+
+# Setup Model
 model, modelname = EmotionVGGDefault.build(width=48, height=48, depth = 1, classes = 7,last_activation="sigmoid")
 model.compile(optimizer="adam",loss="binary_crossentropy", metrics="accuracy")
 
-# PREPARE TRAIN
+# PREPARE TRAINING
 ys = training_generator.y
 ys2 = np.argmax(ys, axis=1)
 class_weights_dict = get_classweights(ys2,normalize=False)
 STEP_SIZE_TRAIN= training_generator.n// training_generator.batch_size
-epochs = 30
+epochs = 10
 
 # TRAIN
 model.fit(training_generator,steps_per_epoch=STEP_SIZE_TRAIN,
-                                validation_data=(val_X, val_Y),
+                                validation_data=validation_generator,
                                 class_weight=class_weights_dict,
                                 epochs=epochs, 
                                 #callbacks=[get_tensorboard_cb(),earlystop,reduce_lr],
                                 verbose=1)
 
 # TEST
-pred = model.predict(test_X)
+pred = model.predict(test_generator)
 y_pred = np.argmax(pred, axis=1)
-y_true = np.argmax(test_Y, axis=1)
+y_true = np.argmax(test_generator.y, axis=1)
 matrix = confusion_matrix(y_true, y_pred)
 print("CNN Model Accuracy on test set: {:.4f}".format(accuracy_score(y_true, y_pred)))
 print(confusion_matrix(y_true, y_pred))
 print(classification_report(y_true, y_pred, target_names=class_labels))
 plot_confusion_matrix(y_true,y_pred,classes=class_labels,normalize=True)
-
